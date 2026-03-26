@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pacto de Horas Extras — Metalum</title>
+
+<!-- Librerías -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap');
+
+:root {
+  --ink:     #0f0e0d;
+  --paper:   #f5f0e8;
+  --accent:  #c8392b;
+  --navy:    #1a3a5c;
+  --light:   #e8e2d6;
+  --mid:     #9a9080;
+  --success: #2a7a4e;
+  --white:   #ffffff;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  min-height: 100vh;
+}
+
+/* ===================== QR SCREEN ===================== */
+#view-qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 40px 20px;
+  background: var(--navy);
+  position: relative;
+  overflow: hidden;
+}
+#view-qr::before {
+  content:'';
+  position:absolute; inset:0;
+  background:
+    repeating-linear-gradient(0deg,transparent,transparent 40px,rgba(255,255,255,.03) 40px,rgba(255,255,255,.03) 41px),
+    repeating-linear-gradient(90deg,transparent,transparent 40px,rgba(255,255,255,.03) 40px,rgba(255,255,255,.03) 41px);
+}
+
+.qr-card {
+  background: var(--paper);
+  border-radius: 4px;
+  padding: 48px 40px;
+  max-width: 520px;
+  width: 100%;
+  text-align: center;
+  position: relative;
+  box-shadow: 0 32px 80px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.08);
+}
+.qr-card::before {
+  content:'';
+  position:absolute; top:0; left:0; right:0;
+  height:6px; background:var(--accent);
+  border-radius:4px 4px 0 0;
+}
+
+.company-name {
+  font-family:'DM Serif Display',serif;
+  font-size:13px; letter-spacing:4px;
+  text-transform:uppercase; color:var(--accent);
+  margin-bottom:6px;
+}
+.qr-eyebrow {
+  font-size:10px; letter-spacing:3px;
+  text-transform:uppercase; color:var(--mid);
+  margin-bottom:24px;
+}
+.qr-title {
+  font-family:'DM Serif Display',serif;
+  font-size:34px; line-height:1.15;
+  color:var(--navy); margin-bottom:8px;
+}
+.qr-sub {
+  font-size:13px; color:var(--mid);
+  margin-bottom:36px; line-height:1.5;
+}
+
+#qrcode {
+  display:inline-block;
+  padding:16px; background:white;
+  border:1px solid var(--light);
+  border-radius:4px; margin-bottom:28px;
+  position:relative;
+}
+#qrcode canvas, #qrcode img { display:block; }
+
+.corners { position:absolute; inset:8px; pointer-events:none; }
+.corners::before,.corners::after,.c-br,.c-bl {
+  content:''; position:absolute;
+  width:20px; height:20px;
+  border-color:var(--navy); border-style:solid;
+}
+.corners::before { top:0;left:0; border-width:3px 0 0 3px; }
+.corners::after  { top:0;right:0; border-width:3px 3px 0 0; }
+.c-br { bottom:0;right:0; border-width:0 3px 3px 0; }
+.c-bl { bottom:0;left:0; border-width:0 0 3px 3px; }
+
+.qr-hint {
+  font-size:13px; color:var(--mid);
+  margin-bottom:24px;
+  display:flex; align-items:center;
+  justify-content:center; gap:8px;
+}
+.url-box {
+  background:var(--light); border:1px dashed var(--mid);
+  border-radius:4px; padding:10px 16px;
+  font-size:11px; color:var(--mid);
+  word-break:break-all; margin-bottom:24px;
+}
+.btn-direct {
+  background:var(--navy); color:white;
+  border:none; padding:14px 32px;
+  font-family:'DM Sans',sans-serif;
+  font-size:14px; font-weight:600;
+  letter-spacing:.5px; border-radius:3px;
+  cursor:pointer; transition:all .2s; width:100%;
+}
+.btn-direct:hover { background:#122b47; transform:translateY(-1px); }
+
+/* ===================== FORM SCREEN ===================== */
+#view-form {
+  display:none;
+  max-width:700px;
+  margin:0 auto;
+  padding:40px 20px 80px;
+}
+
+.form-header {
+  text-align:center;
+  padding:48px 0 40px;
+  border-bottom:1px solid var(--light);
+  margin-bottom:40px;
+}
+.doc-ref {
+  font-size:11px; color:var(--mid);
+  letter-spacing:3px; text-transform:uppercase;
+  margin-bottom:16px;
+}
+.form-header h1 {
+  font-family:'DM Serif Display',serif;
+  font-size:36px; color:var(--navy);
+  line-height:1.2; margin-bottom:8px;
+}
+.form-header p {
+  font-size:13px; color:var(--mid);
+  max-width:400px; margin:0 auto; line-height:1.6;
+}
+
+.legal-notice {
+  background:#fff8f6;
+  border-left:3px solid var(--accent);
+  padding:16px 20px;
+  font-size:12px; color:#6b3028;
+  line-height:1.7; border-radius:0 4px 4px 0;
+  margin-bottom:36px;
+}
+
+.section-label {
+  font-size:10px; font-weight:600;
+  letter-spacing:3px; text-transform:uppercase;
+  color:var(--accent); margin-bottom:20px;
+  display:flex; align-items:center; gap:12px;
+}
+.section-label::after {
+  content:''; flex:1; height:1px; background:var(--light);
+}
+.form-section { margin-bottom:40px; }
+
+.form-grid {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:16px;
+}
+.form-group { display:flex; flex-direction:column; gap:6px; }
+.form-group.full { grid-column:1/-1; }
+
+label {
+  font-size:11px; font-weight:600;
+  letter-spacing:1px; text-transform:uppercase;
+  color:var(--mid);
+}
+input, select, textarea {
+  font-family:'DM Sans',sans-serif;
+  font-size:14px; color:var(--ink);
+  background:white; border:1px solid var(--light);
+  border-radius:3px; padding:11px 14px;
+  outline:none; transition:border-color .2s;
+}
+input:focus, select:focus, textarea:focus {
+  border-color:var(--navy);
+  box-shadow:0 0 0 3px rgba(26,58,92,.08);
+}
+textarea { resize:vertical; min-height:80px; }
+
+/* Horas */
+.hours-grid {
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  gap:8px; margin-top:8px;
+}
+.day-chip {
+  display:flex; flex-direction:column;
+  align-items:center; gap:6px;
+}
+.day-chip span {
+  font-size:10px; font-weight:600;
+  letter-spacing:1px; color:var(--mid);
+  text-transform:uppercase;
+}
+.day-chip input[type=number] {
+  width:100%; text-align:center;
+  padding:10px 4px; font-size:16px; font-weight:600;
+}
+
+.total-bar {
+  background:var(--navy); color:white;
+  border-radius:4px; padding:16px 24px;
+  display:flex; justify-content:space-between;
+  align-items:center; margin-top:16px;
+}
+.total-bar .lbl { font-size:12px; opacity:.7; }
+.total-bar .val { font-size:24px; font-family:'DM Serif Display',serif; }
+.total-bar .sub { font-size:11px; opacity:.6; margin-top:2px; text-align:right; }
+
+/* Firma */
+.sig-area {
+  border:1px solid var(--light);
+  border-radius:4px; overflow:hidden; background:white;
+}
+.sig-toolbar {
+  background:var(--light);
+  padding:8px 12px;
+  display:flex; align-items:center;
+  justify-content:space-between;
+  border-bottom:1px solid #d4cdc0;
+}
+.sig-toolbar span {
+  font-size:11px; font-weight:600;
+  letter-spacing:1px; text-transform:uppercase; color:var(--mid);
+}
+.sig-clear {
+  background:none; border:1px solid var(--mid);
+  border-radius:2px; padding:4px 12px;
+  font-size:11px; font-family:'DM Sans',sans-serif;
+  color:var(--mid); cursor:pointer; transition:all .15s;
+}
+.sig-clear:hover { border-color:var(--accent); color:var(--accent); }
+
+.sig-wrap { position:relative; }
+#signature-canvas {
+  display:block; width:100%; height:160px;
+  cursor:crosshair; touch-action:none;
+}
+.sig-placeholder {
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  color:var(--light); font-size:13px;
+  pointer-events:none; transition:opacity .2s;
+}
+.sig-wrap.signed .sig-placeholder { opacity:0; }
+
+/* Conformidad */
+.conform-box {
+  background:white; border:1px solid var(--light);
+  border-radius:4px; padding:20px;
+}
+.checkbox-row {
+  display:flex; align-items:flex-start;
+  gap:12px; cursor:pointer;
+}
+.checkbox-row input[type=checkbox] {
+  width:20px; height:20px; flex-shrink:0;
+  margin-top:2px; accent-color:var(--navy); cursor:pointer;
+}
+.checkbox-row span {
+  font-size:13px; line-height:1.6; color:#444;
+}
+
+/* Submit */
+.submit-section {
+  margin-top:40px;
+  border-top:1px solid var(--light);
+  padding-top:32px;
+}
+.ts-info {
+  font-size:12px; color:var(--mid);
+  margin-bottom:20px; text-align:center;
+}
+.btn-submit {
+  width:100%; background:var(--accent); color:white;
+  border:none; padding:18px;
+  font-family:'DM Serif Display',serif;
+  font-size:18px; border-radius:3px;
+  cursor:pointer; transition:all .2s; letter-spacing:.5px;
+}
+.btn-submit:hover:not(:disabled) {
+  background:#a62e23; transform:translateY(-2px);
+  box-shadow:0 8px 24px rgba(200,57,43,.3);
+}
+.btn-submit:disabled {
+  background:var(--mid); cursor:not-allowed;
+  transform:none; box-shadow:none;
+}
+
+/* Loading overlay */
+#loading-overlay {
+  display:none; position:fixed; inset:0;
+  background:rgba(26,58,92,.85);
+  z-index:999; align-items:center;
+  justify-content:center; flex-direction:column;
+  gap:20px;
+}
+.spinner {
+  width:52px; height:52px;
+  border:4px solid rgba(255,255,255,.2);
+  border-top-color:white;
+  border-radius:50%;
+  animation:spin .8s linear infinite;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+.loading-text {
+  color:white; font-size:15px;
+  font-weight:500; letter-spacing:.5px;
+}
+
+/* ===================== SUCCESS SCREEN ===================== */
+#view-success {
+  display:none;
+  min-height:100vh;
+  align-items:center; justify-content:center;
+  padding:40px 20px;
+  background:var(--navy);
+  flex-direction:column; text-align:center;
+}
+.success-card {
+  background:var(--paper);
+  border-radius:4px; padding:56px 48px;
+  max-width:480px; width:100%;
+  position:relative;
+  box-shadow:0 32px 80px rgba(0,0,0,.4);
+}
+.success-card::before {
+  content:''; position:absolute;
+  top:0; left:0; right:0; height:6px;
+  background:var(--success);
+  border-radius:4px 4px 0 0;
+}
+.checkmark {
+  width:72px; height:72px;
+  background:var(--success); border-radius:50%;
+  display:flex; align-items:center;
+  justify-content:center; margin:0 auto 28px;
+}
+.success-card h2 {
+  font-family:'DM Serif Display',serif;
+  font-size:30px; color:var(--navy); margin-bottom:12px;
+}
+.success-card p {
+  font-size:14px; color:var(--mid);
+  line-height:1.7; margin-bottom:32px;
+}
+.receipt-code {
+  background:var(--light); border-radius:4px;
+  padding:16px; font-family:'Courier New',monospace;
+  font-size:13px; color:var(--navy);
+  font-weight:600; letter-spacing:2px; margin-bottom:24px;
+}
+.success-meta {
+  font-size:12px; color:var(--mid); line-height:1.9;
+}
+
+@media (max-width:500px) {
+  .form-grid { grid-template-columns:1fr; }
+  .form-group.full { grid-column:1; }
+  .hours-grid { grid-template-columns:repeat(4,1fr); }
+  .qr-title { font-size:26px; }
+  .qr-card { padding:36px 24px; }
+  .success-card { padding:40px 24px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ===================== LOADING ===================== -->
+<div id="loading-overlay">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loading-text">Generando PDF...</div>
+</div>
+
+<!-- ===================== QR ===================== -->
+<div id="view-qr">
+  <div class="qr-card">
+    <div class="company-name">Metalum</div>
+    <div class="qr-eyebrow">Documento laboral interno</div>
+    <h2 class="qr-title">Pacto de<br>Horas Extras</h2>
+    <p class="qr-sub">Escanea el código con la cámara de tu celular para firmar el acuerdo</p>
+
+    <div id="qrcode">
+      <div class="corners">
+        <div class="c-br"></div>
+        <div class="c-bl"></div>
+      </div>
+    </div>
+
+    <p class="qr-hint">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#9a9080" stroke-width="2">
+        <path d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+      </svg>
+      Apunta la cámara al código QR
+    </p>
+
+    <div class="url-box" id="qr-url-display">cargando url...</div>
+    <button class="btn-direct" onclick="showForm()">Abrir formulario directamente →</button>
+  </div>
+</div>
+
+<!-- ===================== FORMULARIO ===================== -->
+<div id="view-form">
+  <div class="form-header">
+    <div class="doc-ref" id="doc-ref">DOC-XXXXXX · cargando...</div>
+    <h1>Pacto de Horas<br>Extraordinarias</h1>
+    <p>Acuerdo entre trabajador y empleador conforme al Código del Trabajo de Chile</p>
+  </div>
+
+  <div class="legal-notice">
+    <strong>Base legal — Art. 32 Código del Trabajo:</strong> Las horas extraordinarias sólo pueden pactarse para atender necesidades o situaciones temporales, con un máximo de <strong>2 horas diarias</strong> y 12 semanales, remuneradas con recargo mínimo del <strong>50%</strong> sobre el sueldo convenido.
+  </div>
+
+  <!-- EMPLEADOR -->
+  <div class="form-section">
+    <div class="section-label">Datos del empleador</div>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label>Razón social / Nombre empresa</label>
+        <input type="text" id="empresa" value="Metalum" placeholder="Razón social">
+      </div>
+      <div class="form-group">
+        <label>RUT empresa</label>
+        <input type="text" id="rut-empresa" placeholder="76.123.456-7">
+      </div>
+      <div class="form-group">
+        <label>Representante legal</label>
+        <input type="text" id="representante" placeholder="Nombre completo">
+      </div>
+    </div>
+  </div>
+
+  <!-- TRABAJADOR -->
+  <div class="form-section">
+    <div class="section-label">Datos del trabajador</div>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label>Nombre completo *</label>
+        <input type="text" id="nombre" placeholder="Nombre completo" required oninput="checkSubmit()">
+      </div>
+      <div class="form-group">
+        <label>RUT trabajador *</label>
+        <input type="text" id="rut" placeholder="12.345.678-9" required oninput="checkSubmit()">
+      </div>
+      <div class="form-group">
+        <label>Cargo / Función</label>
+        <input type="text" id="cargo" placeholder="Ej: Operario de planta">
+      </div>
+      <div class="form-group">
+        <label>Área / Departamento</label>
+        <input type="text" id="area" placeholder="Ej: Producción">
+      </div>
+      <div class="form-group">
+        <label>Teléfono de contacto</label>
+        <input type="tel" id="telefono" placeholder="+56 9 XXXX XXXX">
+      </div>
+    </div>
+  </div>
+
+  <!-- HORAS -->
+  <div class="form-section">
+    <div class="section-label">Horas extraordinarias pactadas</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Fecha inicio *</label>
+        <input type="date" id="fecha-inicio" required oninput="checkSubmit()">
+      </div>
+      <div class="form-group">
+        <label>Fecha término</label>
+        <input type="date" id="fecha-fin">
+      </div>
+      <div class="form-group full">
+        <label>Motivo / Necesidad temporal *</label>
+        <textarea id="motivo" placeholder="Describa la situación temporal que justifica las horas extras..." required oninput="checkSubmit()"></textarea>
+      </div>
+    </div>
+
+    <div style="margin-top:24px;">
+      <label style="font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--mid);display:block;margin-bottom:12px;">
+        Horas extras por día (máx. 2 h/día)
+      </label>
+      <div class="hours-grid">
+        <div class="day-chip"><span>Lun</span><input type="number" class="dh" min="0" max="2" step="0.5" value="0" oninput="calcTotal()"></div>
+        <div class="day-chip"><span>Mar</span><input type="number" class="dh" min="0" max="2" step="0.5" value="0" oninput="calcTotal()"></div>
+        <div class="day-chip"><span>Mié</span><input type="number" class="dh" min="0" max="2" step="0.5" value="0" oninput="calcTotal()"></div>
+        <div class="day-chip"><span>Jue</span><input type="number" class="dh" min="0" max="2" step="0.5" value="0" oninput="calcTotal()"></div>
+        <div class="day-chip"><span>Vie</span><input type="number" class="dh" min="0" max="2" step="0.5" value="0" oninput="calcTotal()"></div>
+        <div class="day-chip"><span>Sáb</span><input type="number" class="dh" min="0" max="2" step="0.5" value="0" oninput="calcTotal()"></div>
+        <div class="day-chip"><span>Dom</span><input type="number" class="dh" min="0" max="2" step="0.5" value="0" oninput="calcTotal()"></div>
+      </div>
+      <div class="total-bar" id="total-bar">
+        <div>
+          <div class="lbl">Total semanal pactado</div>
+          <div class="val" id="total-val">0.0 hrs</div>
+        </div>
+        <div>
+          <div class="val">+ 50%</div>
+          <div class="sub">Recargo mínimo legal</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FIRMA -->
+  <div class="form-section">
+    <div class="section-label">Firma digital del trabajador</div>
+    <div class="sig-wrap" id="sig-wrap">
+      <div class="sig-area">
+        <div class="sig-toolbar">
+          <span>Firme con el dedo o cursor</span>
+          <button class="sig-clear" onclick="clearSig()">Limpiar</button>
+        </div>
+        <div style="position:relative;">
+          <canvas id="signature-canvas"></canvas>
+          <div class="sig-placeholder">Toque aquí para firmar</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONFORMIDAD -->
+  <div class="form-section">
+    <div class="section-label">Declaración de conformidad</div>
+    <div class="conform-box">
+      <label class="checkbox-row">
+        <input type="checkbox" id="conformidad" onchange="checkSubmit()">
+        <span>Declaro haber leído y comprendido este pacto de horas extraordinarias, que lo suscribo de forma <strong>libre y voluntaria</strong>, y que las horas acordadas se ajustan a la normativa vigente. Entiendo que este acuerdo tiene vigencia máxima de <strong>3 meses renovables</strong> y puede ser dejado sin efecto por cualquiera de las partes con aviso previo.</span>
+      </label>
+    </div>
+  </div>
+
+  <!-- ENVIAR -->
+  <div class="submit-section">
+    <p class="ts-info" id="ts-info">La fecha y hora de firma se registrarán automáticamente.</p>
+    <button class="btn-submit" id="btn-submit" onclick="enviar()" disabled>
+      Firmar y enviar pacto
+    </button>
+  </div>
+</div>
+
+<!-- ===================== SUCCESS ===================== -->
+<div id="view-success">
+  <div class="success-card">
+    <div class="checkmark">
+      <svg width="36" height="36" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+      </svg>
+    </div>
+    <h2>Pacto firmado<br>correctamente</h2>
+    <p>Tu formulario firmado fue enviado a Recursos Humanos. Guarda el código como comprobante.</p>
+    <div class="receipt-code" id="receipt-code">DOC-XXXXXX</div>
+    <div class="success-meta" id="success-meta"></div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+//  ⚙️  CONFIGURACIÓN — Reemplaza con tus datos de EmailJS
+// ============================================================
+const EMAILJS_PUBLIC_KEY  = 'sC85ccav1sgRAxHsk';
+const EMAILJS_SERVICE_ID  = 'service_ithx7u8';
+const EMAILJS_TEMPLATE_ID = 'template_g82izdg';
+const DESTINO_EMAIL       = 'mguzman@metalum.cl';
+// ============================================================
+
+let sigData = null;
+let docNum  = '';
+
+// ---------- INIT ----------
+window.addEventListener('load', () => {
+  emailjs.init(EMAILJS_PUBLIC_KEY);
+
+  // Generar número de documento
+  docNum = 'DOC-' + Date.now().toString(36).toUpperCase().slice(-6);
+  document.getElementById('receipt-code').textContent = docNum;
+
+  const now = new Date();
+  document.getElementById('doc-ref').textContent =
+    `${docNum} · ${now.toLocaleDateString('es-CL',{day:'2-digit',month:'long',year:'numeric'})}`;
+
+  // QR
+  const base = window.location.href.split('?')[0];
+  const formUrl = base + '?v=form';
+  document.getElementById('qr-url-display').textContent = formUrl;
+  new QRCode(document.getElementById('qrcode'), {
+    text: formUrl, width:220, height:220,
+    colorDark:'#0f0e0d', colorLight:'#ffffff',
+    correctLevel: QRCode.CorrectLevel.H
+  });
+
+  // Fecha por defecto
+  document.getElementById('fecha-inicio').value = now.toISOString().split('T')[0];
+
+  // Timestamp live
+  updateTS(); setInterval(updateTS, 1000);
+
+  // Auto-show form si viene del QR
+  if (window.location.search.includes('v=form')) showForm();
+
+  initCanvas();
+});
+
+function updateTS() {
+  const n = new Date();
+  document.getElementById('ts-info').textContent =
+    `Fecha y hora de firma: ${n.toLocaleDateString('es-CL')} ${n.toLocaleTimeString('es-CL')}`;
+}
+
+// ---------- NAV ----------
+function showForm() {
+  document.getElementById('view-qr').style.display   = 'none';
+  document.getElementById('view-form').style.display = 'block';
+  window.scrollTo(0,0);
+}
+
+// ---------- HORAS ----------
+function calcTotal() {
+  const chips = document.querySelectorAll('.dh');
+  let total = 0;
+  chips.forEach(c => {
+    let v = parseFloat(c.value)||0;
+    if(v>2){v=2;c.value=2;} if(v<0){v=0;c.value=0;}
+    total += v;
+  });
+  document.getElementById('total-val').textContent = total.toFixed(1)+' hrs';
+  const bar = document.getElementById('total-bar');
+  bar.style.background = total > 12 ? 'var(--accent)' : 'var(--navy)';
+  checkSubmit();
+}
+
+// ---------- CANVAS FIRMA ----------
+function initCanvas() {
+  const canvas = document.getElementById('signature-canvas');
+  canvas.width  = (canvas.offsetWidth || 660) * devicePixelRatio;
+  canvas.height = 160 * devicePixelRatio;
+  canvas.style.height = '160px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+  ctx.strokeStyle = '#0f0e0d';
+  ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+
+  let drawing = false, lx=0, ly=0;
+
+  function pos(e) {
+    const r = canvas.getBoundingClientRect();
+    const s = e.touches ? e.touches[0] : e;
+    return { x: s.clientX - r.left, y: s.clientY - r.top };
+  }
+  function start(e) {
+    e.preventDefault(); drawing = true;
+    const {x,y} = pos(e); lx=x; ly=y;
+    document.getElementById('sig-wrap').classList.add('signed');
+  }
+  function move(e) {
+    if(!drawing) return; e.preventDefault();
+    const {x,y} = pos(e);
+    ctx.beginPath(); ctx.moveTo(lx,ly); ctx.lineTo(x,y); ctx.stroke();
+    lx=x; ly=y;
+    sigData = canvas.toDataURL('image/png');
+    checkSubmit();
+  }
+  function stop() { drawing = false; }
+
+  canvas.addEventListener('mousedown', start);
+  canvas.addEventListener('mousemove', move);
+  canvas.addEventListener('mouseup', stop);
+  canvas.addEventListener('touchstart', start, {passive:false});
+  canvas.addEventListener('touchmove', move, {passive:false});
+  canvas.addEventListener('touchend', stop);
+}
+
+function clearSig() {
+  const canvas = document.getElementById('signature-canvas');
+  canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);
+  sigData = null;
+  document.getElementById('sig-wrap').classList.remove('signed');
+  checkSubmit();
+}
+
+// ---------- VALIDACIÓN ----------
+function checkSubmit() {
+  const ok =
+    document.getElementById('nombre').value.trim() &&
+    document.getElementById('rut').value.trim() &&
+    document.getElementById('motivo').value.trim() &&
+    document.getElementById('fecha-inicio').value &&
+    document.getElementById('conformidad').checked &&
+    sigData;
+  document.getElementById('btn-submit').disabled = !ok;
+}
+
+// ---------- GENERAR PDF ----------
+async function generarPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'letter' });
+
+  const now  = new Date();
+  const ts   = `${now.toLocaleDateString('es-CL')} ${now.toLocaleTimeString('es-CL')}`;
+  const W    = doc.internal.pageSize.getWidth();
+  const mar  = 22;
+
+  // Colores
+  const navy   = [26, 58, 92];
+  const accent = [200, 57, 43];
+  const mid    = [154, 144, 128];
+  const light  = [232, 226, 214];
+
+  // Barra superior
+  doc.setFillColor(...accent);
+  doc.rect(0, 0, W, 8, 'F');
+
+  // Encabezado
+  doc.setFillColor(...navy);
+  doc.rect(0, 8, W, 38, 'F');
+
+  doc.setTextColor(255,255,255);
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(22);
+  doc.text('METALUM', mar, 26);
+
+  doc.setFontSize(11);
+  doc.setFont('helvetica','normal');
+  doc.setTextColor(200,210,220);
+  doc.text('PACTO DE HORAS EXTRAORDINARIAS', mar, 34);
+
+  doc.setFontSize(9);
+  doc.setTextColor(180,190,200);
+  doc.text(docNum + '  ·  ' + ts, mar, 40);
+
+  // Número doc (derecha)
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(9);
+  doc.setTextColor(255,255,255);
+  doc.text(docNum, W - mar, 40, {align:'right'});
+
+  let y = 58;
+
+  // Base legal
+  doc.setFillColor(255,248,246);
+  doc.roundedRect(mar, y, W - mar*2, 16, 2, 2, 'F');
+  doc.setDrawColor(...accent);
+  doc.setLineWidth(0.8);
+  doc.line(mar, y, mar, y+16);
+  doc.setTextColor(107,48,40);
+  doc.setFont('helvetica','bold'); doc.setFontSize(8);
+  doc.text('BASE LEGAL', mar+4, y+6);
+  doc.setFont('helvetica','normal');
+  doc.text('Art. 32 Código del Trabajo — Máx. 2 h/día · 12 h/semana · Recargo mínimo 50%', mar+4, y+12);
+  y += 24;
+
+  // Función sección
+  function seccion(titulo) {
+    doc.setFillColor(...light);
+    doc.rect(mar, y, W - mar*2, 8, 'F');
+    doc.setTextColor(...accent);
+    doc.setFont('helvetica','bold'); doc.setFontSize(8);
+    doc.text(titulo, mar+4, y+5.5);
+    y += 14;
+    doc.setTextColor(...navy);
+  }
+
+  function campo(label, valor, x2col) {
+    doc.setFont('helvetica','bold'); doc.setFontSize(7.5);
+    doc.setTextColor(...mid);
+    doc.text(label.toUpperCase(), x2col || mar, y);
+    doc.setFont('helvetica','normal'); doc.setFontSize(10);
+    doc.setTextColor(...navy);
+    doc.text(valor || '—', x2col || mar, y+6);
+    y += 13;
+  }
+
+  // EMPLEADOR
+  seccion('DATOS DEL EMPLEADOR');
+  campo('Razón social', document.getElementById('empresa').value);
+  const halfW = (W - mar*2) / 2;
+  const ySnap = y;
+  doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(...mid);
+  doc.text('RUT EMPRESA', mar, y);
+  doc.text('REPRESENTANTE LEGAL', mar + halfW, y);
+  doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(...navy);
+  doc.text(document.getElementById('rut-empresa').value || '—', mar, y+6);
+  doc.text(document.getElementById('representante').value || '—', mar+halfW, y+6);
+  y += 18;
+
+  // TRABAJADOR
+  seccion('DATOS DEL TRABAJADOR');
+  campo('Nombre completo', document.getElementById('nombre').value);
+  doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(...mid);
+  doc.text('RUT', mar, y); doc.text('CARGO', mar+halfW, y);
+  doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(...navy);
+  doc.text(document.getElementById('rut').value || '—', mar, y+6);
+  doc.text(document.getElementById('cargo').value || '—', mar+halfW, y+6);
+  y += 13;
+  doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(...mid);
+  doc.text('ÁREA', mar, y); doc.text('TELÉFONO', mar+halfW, y);
+  doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(...navy);
+  doc.text(document.getElementById('area').value || '—', mar, y+6);
+  doc.text(document.getElementById('telefono').value || '—', mar+halfW, y+6);
+  y += 18;
+
+  // HORAS
+  seccion('HORAS EXTRAORDINARIAS PACTADAS');
+  doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(...mid);
+  doc.text('FECHA INICIO', mar, y); doc.text('FECHA TÉRMINO', mar+halfW, y);
+  doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(...navy);
+  doc.text(document.getElementById('fecha-inicio').value || '—', mar, y+6);
+  doc.text(document.getElementById('fecha-fin').value || '—', mar+halfW, y+6);
+  y += 13;
+
+  // Motivo
+  doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(...mid);
+  doc.text('MOTIVO / NECESIDAD TEMPORAL', mar, y);
+  y += 5;
+  doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(...navy);
+  const lines = doc.splitTextToSize(document.getElementById('motivo').value || '—', W - mar*2);
+  doc.text(lines, mar, y);
+  y += lines.length * 4.5 + 8;
+
+  // Grid días
+  const days = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+  const chips = document.querySelectorAll('.dh');
+  const chipW = (W - mar*2) / 7;
+  let total = 0;
+  days.forEach((d, i) => {
+    const v = parseFloat(chips[i]?.value)||0; total += v;
+    const cx = mar + i * chipW;
+    doc.setFillColor(v>0 ? ...navy : ...light);
+    doc.roundedRect(cx, y, chipW-2, 18, 2, 2, 'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(7);
+    doc.setTextColor(v>0 ? 255 : ...mid);
+    doc.text(d, cx + (chipW-2)/2, y+6, {align:'center'});
+    doc.setFontSize(12);
+    doc.text(v.toFixed(1), cx + (chipW-2)/2, y+14, {align:'center'});
+  });
+  y += 24;
+
+  // Total
+  doc.setFillColor(...navy);
+  doc.roundedRect(mar, y, W-mar*2, 16, 2, 2, 'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(10);
+  doc.setTextColor(255,255,255);
+  doc.text('Total semanal: ' + total.toFixed(1) + ' horas  ·  Recargo mínimo: +50%', mar+6, y+10);
+  y += 24;
+
+  // FIRMA
+  seccion('FIRMA DIGITAL DEL TRABAJADOR');
+  if (sigData) {
+    doc.setDrawColor(...light);
+    doc.setLineWidth(0.5);
+    doc.roundedRect(mar, y, W-mar*2, 42, 2, 2, 'S');
+    try {
+      doc.addImage(sigData, 'PNG', mar+4, y+4, W-mar*2-8, 34);
+    } catch(e) {}
+    y += 48;
+  }
+
+  // Conformidad
+  doc.setFillColor(245,240,232);
+  doc.roundedRect(mar, y, W-mar*2, 18, 2, 2, 'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...navy);
+  doc.text('✓  DECLARACIÓN DE CONFORMIDAD', mar+4, y+7);
+  doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...mid);
+  doc.text('El trabajador declara haber leído, comprendido y suscrito este pacto de forma libre y voluntaria.', mar+4, y+13);
+  y += 26;
+
+  // Pie de página
+  doc.setFillColor(...navy);
+  doc.rect(0, doc.internal.pageSize.getHeight()-14, W, 14, 'F');
+  doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
+  doc.setTextColor(180,190,200);
+  doc.text('Metalum  ·  ' + docNum + '  ·  Firmado digitalmente el ' + ts, W/2, doc.internal.pageSize.getHeight()-5, {align:'center'});
+
+  return doc;
+}
+
+// ---------- ENVIAR ----------
+async function enviar() {
+  const btn = document.getElementById('btn-submit');
+  btn.disabled = true;
+  const overlay = document.getElementById('loading-overlay');
+  const ltxt    = document.getElementById('loading-text');
+
+  overlay.style.display = 'flex';
+  ltxt.textContent = 'Generando PDF...';
+
+  let pdfB64 = '';
+  try {
+    const pdf = await generarPDF();
+    pdfB64 = pdf.output('datauristring').split(',')[1];
+  } catch(e) {
+    console.error('PDF error:', e);
+  }
+
+  ltxt.textContent = 'Enviando correo...';
+
+  const now = new Date();
+  const ts  = `${now.toLocaleDateString('es-CL')} ${now.toLocaleTimeString('es-CL')}`;
+
+  const chips = document.querySelectorAll('.dh');
+  let totalH  = 0;
+  const dias  = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+  let horasTxt = '';
+  chips.forEach((c,i) => {
+    const v = parseFloat(c.value)||0;
+    totalH += v;
+    if(v>0) horasTxt += `${dias[i]}: ${v}h  `;
+  });
+
+  const params = {
+    to_email:      DESTINO_EMAIL,
+    doc_numero:    docNum,
+    fecha_firma:   ts,
+    nombre:        document.getElementById('nombre').value,
+    rut:           document.getElementById('rut').value,
+    cargo:         document.getElementById('cargo').value || '—',
+    area:          document.getElementById('area').value  || '—',
+    empresa:       document.getElementById('empresa').value,
+    rut_empresa:   document.getElementById('rut-empresa').value || '—',
+    representante: document.getElementById('representante').value || '—',
+    fecha_inicio:  document.getElementById('fecha-inicio').value,
+    fecha_fin:     document.getElementById('fecha-fin').value || '—',
+    motivo:        document.getElementById('motivo').value,
+    horas_detalle: horasTxt || '—',
+    total_horas:   totalH.toFixed(1),
+    firma_imagen:  sigData || '',
+    pdf_base64:    pdfB64,
+  };
+
+  try {
+    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, params);
+    overlay.style.display = 'none';
+
+    document.getElementById('success-meta').innerHTML =
+      `<strong>${params.nombre}</strong><br>
+       ${params.empresa}<br>
+       RUT: ${params.rut}<br><br>
+       Enviado a <strong>${DESTINO_EMAIL}</strong><br>
+       ${ts}`;
+
+    document.getElementById('view-form').style.display   = 'none';
+    document.getElementById('view-success').style.display = 'flex';
+    window.scrollTo(0,0);
+  } catch(err) {
+    overlay.style.display = 'none';
+    alert('⚠️ No se pudo enviar el correo. Verifica que las credenciales de EmailJS estén configuradas correctamente.\n\nError: ' + JSON.stringify(err));
+    btn.disabled = false;
+  }
+}
+</script>
+</body>
+</html>
